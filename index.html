@@ -720,8 +720,8 @@
             try {
                 const response = await fetch(`${API_URL}?action=${action}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(data),
+                    redirect: 'follow'
                 });
                 return await response.json();
             } catch (error) {
