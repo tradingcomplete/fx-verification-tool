@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX手法検証ツール - スプレッドシート連携版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .sync-status {
+            text-align: center;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .sync-status.connected {
+            background: #e8f5e9;
+            color: #4CAF50;
+        }
+        .sync-status.disconnected {
+            background: #ffebee;
+            color: #f44336;
+        }
+        .sync-status.syncing {
+            background: #fff3e0;
+            color: #FF9800;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #666;
+            margin-top: 20px;
+        }
+        
+        /* テーマ選択セクション */
+        .theme-selector {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        .theme-selector h2 {
+            color: white;
+            border-bottom-color: rgba(255,255,255,0.3);
+            margin-top: 0;
+        }
+        .theme-select-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .theme-select-row select {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+        }
+        .theme-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+        .theme-btn:hover {
+            transform: scale(1.05);
+        }
+        .theme-btn.new {
+            background: #4CAF50;
+            color: white;
+        }
+        .theme-btn.edit {
+            background: #FF9800;
+            color: white;
+        }
+        .theme-btn.delete {
+            background: #f44336;
+            color: white;
+        }
+        
+        /* ルール設定セクション */
+        .rule-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #666;
+        }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .delete-btn {
+            background-color: #f44336;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+        .export-btn {
+            background-color: #2196F3;
+        }
+        .export-btn:hover {
+            background-color: #0b7dda;
+        }
+        .report-btn {
+            background-color: #FF9800;
+        }
+        .report-btn:hover {
+            background-color: #e68900;
+        }
+        
+        /* 入力セクション */
+        .input-section {
+            background: #f0f8ff;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 2px solid #2196F3;
+        }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 5px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            font-size: 18px;
+            padding: 10px 20px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .radio-group label:hover {
+            background-color: #f0f0f0;
+        }
+        .radio-group input[type="radio"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        .radio-group label.selected-win {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        .radio-group label.selected-lose {
+            border-color: #f44336;
+            background-color: #ffebee;
+        }
+        .radio-group label.selected-skip {
+            border-color: #FF9800;
+            background-color: #fff3e0;
+        }
+        
+        /* クイック統計 */
+        .quick-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .quick-stat {
+            font-weight: bold;
+        }
+        
+        /* 統計ボックス */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-box {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #4CAF50;
+        }
+        .stat-box h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 12px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .positive { color: #4CAF50; }
+        .negative { color: #f44336; }
+        
+        /* テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .result-win { color: #4CAF50; font-weight: bold; }
+        .result-lose { color: #f44336; font-weight: bold; }
+        .skip-reason { color: #FF9800; font-style: italic; }
+        
+        /* アクションボタン */
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 10px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover { color: black; }
+        
+        /* レポートセクション */
+        .report-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .report-section h4 {
+            margin-top: 0;
+            color: #555;
+        }
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .report-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .report-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .report-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* ノートセクション */
+        .note-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff9c4;
+            border-radius: 8px;
+            border-left: 4px solid #fbc02d;
+        }
+        
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        /* テーマ情報表示 */
+        .current-theme-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .current-theme-info h3 {
+            margin: 0 0 10px 0;
+            color: #1976D2;
+        }
+        .theme-detail {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 20px; }
+            .form-row { flex-direction: column; }
+            .radio-group { flex-direction: column; gap: 10px; }
+            .theme-select-row { flex-direction: column; }
+            .theme-select-row select { width: 100%; }
+            .quick-stats { flex-direction: column; gap: 10px; text-align: center; }
+            .stat-value { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FX手法検証ツール</h1>
+        <p class="subtitle">スプレッドシート連携版 v1.0</p>
+        <div style="text-align: center;">
+            <span id="sync-status" class="sync-status disconnected">● 接続確認中...</span>
+        </div>
+
+        <!-- テーマ選択セクション -->
+        <div class="theme-selector">
+            <h2 style="margin-top:0;">📊 検証テーマ選択</h2>
+            <div class="theme-select-row">
+                <select id="theme-select" onchange="onThemeChange()">
+                    <option value="">-- テーマを選択 --</option>
+                </select>
+                <button class="theme-btn new" onclick="showNewThemeModal()">＋ 新規作成</button>
+                <button class="theme-btn edit" onclick="showEditThemeModal()" id="edit-theme-btn" disabled>編集</button>
+                <button class="theme-btn delete" onclick="deleteCurrentTheme()" id="delete-theme-btn" disabled>削除</button>
+            </div>
+        </div>
+
+        <!-- 現在のテーマ情報 -->
+        <div id="current-theme-info" class="current-theme-info" style="display: none;">
+            <h3 id="theme-title">テーマ名</h3>
+            <div class="theme-detail"><strong>通貨ペア:</strong> <span id="theme-pair">-</span></div>
+            <div class="theme-detail"><strong>検証期間:</strong> <span id="theme-period">-</span></div>
+            <div class="theme-detail"><strong>時間足:</strong> トレンド判断 <span id="theme-trend-tf">-</span> / トレード <span id="theme-trade-tf">-</span></div>
+            <div class="theme-detail"><strong>エントリー:</strong> <span id="theme-entry-rule">-</span></div>
+            <div class="theme-detail"><strong>利確:</strong> <span id="theme-tp-rule">-</span></div>
+            <div class="theme-detail"><strong>損切:</strong> <span id="theme-sl-rule">-</span></div>
+        </div>
+
+        <!-- データ入力セクション -->
+        <div class="input-section" id="input-section" style="display: none;">
+            <h2 style="margin-top: 0;">検証データ入力</h2>
+            
+            <div class="form-group">
+                <label>結果を選択</label>
+                <div class="radio-group">
+                    <label id="label-win">
+                        <input type="radio" name="result" value="win" onchange="toggleFields()">
+                        勝ち
+                    </label>
+                    <label id="label-lose">
+                        <input type="radio" name="result" value="lose" onchange="toggleFields()">
+                        負け
+                    </label>
+                    <label id="label-skip">
+                        <input type="radio" name="result" value="skip" onchange="toggleFields()">
+                        見送り
+                    </label>
+                </div>
+            </div>
+
+            <div id="pips-field" style="display: none;">
+                <div class="form-group">
+                    <label for="pips">獲得/損失 pips（プラスの値で入力）</label>
+                    <input type="number" id="pips" min="0" step="0.1" placeholder="150" onkeypress="handleEnterKey(event)">
+                </div>
+            </div>
+
+            <div id="skip-reason-field" style="display: none;">
+                <div class="form-group">
+                    <label for="skip-reason">見送り理由</label>
+                    <select id="skip-reason" onchange="if(this.value) addRecord()">
+                        <option value="">選択してください</option>
+                        <option value="fear">恐怖・不安を感じた</option>
+                        <option value="uncertainty">確信が持てなかった</option>
+                        <option value="distracted">チャートを見ていなかった</option>
+                        <option value="position">既にポジションを持っていた</option>
+                        <option value="time">時間帯が悪い</option>
+                        <option value="news">重要指標前後</option>
+                        <option value="other">その他</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="addRecord()" id="add-button">記録を追加</button>
+            
+            <div class="quick-stats">
+                <span class="quick-stat">トレード：<span id="quick-total">0</span>回</span>
+                <span class="quick-stat">勝率：<span id="quick-winrate">0</span>%</span>
+                <span class="quick-stat">損益：<span id="quick-pips">0</span>pips</span>
+            </div>
+        </div>
+
+        <!-- 統計情報 -->
+        <div id="stats-section" style="display: none;">
+            <h2>検証結果統計</h2>
+            <div class="stats">
+                <div class="stat-box">
+                    <h3>総検証回数</h3>
+                    <div class="stat-value" id="total-count">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>トレード回数</h3>
+                    <div class="stat-value" id="trade-count">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>勝率</h3>
+                    <div class="stat-value" id="win-rate">0%</div>
+                </div>
+                <div class="stat-box">
+                    <h3>勝敗</h3>
+                    <div class="stat-value" id="win-lose">0勝0敗</div>
+                </div>
+                <div class="stat-box">
+                    <h3>総損益</h3>
+                    <div class="stat-value" id="total-pips">0 pips</div>
+                </div>
+                <div class="stat-box">
+                    <h3>期待値</h3>
+                    <div class="stat-value" id="expected-value">0 pips</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 記録テーブル -->
+        <div id="records-section" style="display: none;">
+            <h2>検証記録</h2>
+            <div class="action-buttons">
+                <button class="report-btn" onclick="showDetailedReport()">詳細レポート表示</button>
+                <button class="delete-btn" onclick="clearAllData()">このテーマの全データ削除</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="records-table">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>結果</th>
+                            <th>pips</th>
+                            <th>理由</th>
+                            <th>削除</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 初期メッセージ -->
+        <div id="initial-message" class="note-section">
+            <p><strong>📌 使い方：</strong></p>
+            <ul>
+                <li>まず「＋ 新規作成」ボタンで検証テーマを作成</li>
+                <li>テーマを選択すると検証データの入力ができます</li>
+                <li>データは自動でGoogleスプレッドシートに保存されます</li>
+                <li>複数のテーマを切り替えて管理できます</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 新規テーマモーダル -->
+    <div id="newThemeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeNewThemeModal()">&times;</span>
+            <h2>新規テーマ作成</h2>
+            <div class="form-group">
+                <label for="new-theme-name">テーマ名 *</label>
+                <input type="text" id="new-theme-name" placeholder="例：移動平均線押し目買い">
+            </div>
+            <div class="form-group">
+                <label for="new-pair">通貨ペア</label>
+                <input type="text" id="new-pair" placeholder="例：USDJPY">
+            </div>
+            <div class="form-group">
+                <label for="new-period">検証期間</label>
+                <input type="text" id="new-period" placeholder="例：2022.1-2022.12">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-trend-tf">トレンド判断足</label>
+                    <input type="text" id="new-trend-tf" placeholder="例：4H">
+                </div>
+                <div class="form-group">
+                    <label for="new-trade-tf">トレード足</label>
+                    <input type="text" id="new-trade-tf" placeholder="例：1H">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="new-entry-rule">エントリールール</label>
+                <textarea id="new-entry-rule" placeholder="エントリー条件を詳しく記入"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-tp-rule">利確ルール</label>
+                    <input type="text" id="new-tp-rule" placeholder="例：+100pips / 直近高値">
+                </div>
+                <div class="form-group">
+                    <label for="new-sl-rule">損切ルール</label>
+                    <input type="text" id="new-sl-rule" placeholder="例：-30pips / エントリー足安値">
+                </div>
+            </div>
+            <button onclick="createNewTheme()">テーマを作成</button>
+        </div>
+    </div>
+
+    <!-- 編集テーマモーダル -->
+    <div id="editThemeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditThemeModal()">&times;</span>
+            <h2>テーマを編集</h2>
+            <div class="form-group">
+                <label for="edit-theme-name">テーマ名 *</label>
+                <input type="text" id="edit-theme-name">
+            </div>
+            <div class="form-group">
+                <label for="edit-pair">通貨ペア</label>
+                <input type="text" id="edit-pair">
+            </div>
+            <div class="form-group">
+                <label for="edit-period">検証期間</label>
+                <input type="text" id="edit-period">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-trend-tf">トレンド判断足</label>
+                    <input type="text" id="edit-trend-tf">
+                </div>
+                <div class="form-group">
+                    <label for="edit-trade-tf">トレード足</label>
+                    <input type="text" id="edit-trade-tf">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="edit-entry-rule">エントリールール</label>
+                <textarea id="edit-entry-rule"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit-tp-rule">利確ルール</label>
+                    <input type="text" id="edit-tp-rule">
+                </div>
+                <div class="form-group">
+                    <label for="edit-sl-rule">損切ルール</label>
+                    <input type="text" id="edit-sl-rule">
+                </div>
+            </div>
+            <button onclick="updateTheme()">更新する</button>
+        </div>
+    </div>
+
+    <!-- 詳細レポートモーダル -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeReportModal()">&times;</span>
+            <h2>検証結果詳細レポート</h2>
+            <div id="detailed-report"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // 設定
+        // ===========================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwm1kuPqeQoWhF1cHzFEcLPnBpXG8Vyj9qEqAJY5GNT1liInMHItfSp41m3vhP2Sgmm/exec';
+        
+        // ===========================================
+        // グローバル変数
+        // ===========================================
+        let themes = [];
+        let records = [];
+        let currentTheme = null;
+
+        // ===========================================
+        // 初期化
+        // ===========================================
+        window.onload = async function() {
+            await loadThemes();
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        };
+
+        // ===========================================
+        // API通信
+        // ===========================================
+        async function apiGet(action, params = {}) {
+            const url = new URL(API_URL);
+            url.searchParams.append('action', action);
+            for (const [key, value] of Object.entries(params)) {
+                url.searchParams.append(key, value);
+            }
+            
+            try {
+                const response = await fetch(url.toString());
+                return await response.json();
+            } catch (error) {
+                console.error('API GET Error:', error);
+                updateSyncStatus('disconnected', '● 接続エラー');
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function apiPost(action, data) {
+            try {
+                const response = await fetch(`${API_URL}?action=${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('API POST Error:', error);
+                updateSyncStatus('disconnected', '● 接続エラー');
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ===========================================
+        // 同期ステータス
+        // ===========================================
+        function updateSyncStatus(status, text) {
+            const el = document.getElementById('sync-status');
+            el.className = 'sync-status ' + status;
+            el.textContent = text;
+        }
+
+        // ===========================================
+        // テーマ管理
+        // ===========================================
+        async function loadThemes() {
+            updateSyncStatus('syncing', '● 読み込み中...');
+            const result = await apiGet('getThemes');
+            
+            if (result.success) {
+                themes = result.data || [];
+                updateThemeSelect();
+                updateSyncStatus('connected', '● スプレッドシート接続中');
+            } else {
+                alert('テーマの読み込みに失敗しました: ' + result.error);
+                updateSyncStatus('disconnected', '● 接続エラー');
+            }
+        }
+
+        function updateThemeSelect() {
+            const select = document.getElementById('theme-select');
+            select.innerHTML = '<option value="">-- テーマを選択 --</option>';
+            
+            themes.forEach(theme => {
+                const option = document.createElement('option');
+                option.value = theme.themeId;
+                option.textContent = theme.themeName + (theme.pair ? ` (${theme.pair})` : '');
+                select.appendChild(option);
+            });
+        }
+
+        async function onThemeChange() {
+            const themeId = document.getElementById('theme-select').value;
+            
+            if (!themeId) {
+                currentTheme = null;
+                hideThemeSections();
+                document.getElementById('edit-theme-btn').disabled = true;
+                document.getElementById('delete-theme-btn').disabled = true;
+                document.getElementById('initial-message').style.display = 'block';
+                return;
+            }
+            
+            currentTheme = themes.find(t => t.themeId === themeId);
+            document.getElementById('edit-theme-btn').disabled = false;
+            document.getElementById('delete-theme-btn').disabled = false;
+            document.getElementById('initial-message').style.display = 'none';
+            
+            displayCurrentThemeInfo();
+            showThemeSections();
+            await loadRecords();
+        }
+
+        function displayCurrentThemeInfo() {
+            if (!currentTheme) return;
+            
+            document.getElementById('theme-title').textContent = currentTheme.themeName || '無題のテーマ';
+            document.getElementById('theme-pair').textContent = currentTheme.pair || '-';
+            document.getElementById('theme-period').textContent = currentTheme.period || '-';
+            document.getElementById('theme-trend-tf').textContent = currentTheme.trendTimeframe || '-';
+            document.getElementById('theme-trade-tf').textContent = currentTheme.tradeTimeframe || '-';
+            document.getElementById('theme-entry-rule').textContent = currentTheme.entryRule || '-';
+            document.getElementById('theme-tp-rule').textContent = currentTheme.tpRule || '-';
+            document.getElementById('theme-sl-rule').textContent = currentTheme.slRule || '-';
+            
+            document.getElementById('current-theme-info').style.display = 'block';
+        }
+
+        function showThemeSections() {
+            document.getElementById('input-section').style.display = 'block';
+            document.getElementById('stats-section').style.display = 'block';
+            document.getElementById('records-section').style.display = 'block';
+        }
+
+        function hideThemeSections() {
+            document.getElementById('current-theme-info').style.display = 'none';
+            document.getElementById('input-section').style.display = 'none';
+            document.getElementById('stats-section').style.display = 'none';
+            document.getElementById('records-section').style.display = 'none';
+        }
+
+        // ===========================================
+        // 新規テーマ
+        // ===========================================
+        function showNewThemeModal() {
+            document.getElementById('newThemeModal').style.display = 'block';
+        }
+
+        function closeNewThemeModal() {
+            document.getElementById('newThemeModal').style.display = 'none';
+            clearNewThemeForm();
+        }
+
+        function clearNewThemeForm() {
+            document.getElementById('new-theme-name').value = '';
+            document.getElementById('new-pair').value = '';
+            document.getElementById('new-period').value = '';
+            document.getElementById('new-trend-tf').value = '';
+            document.getElementById('new-trade-tf').value = '';
+            document.getElementById('new-entry-rule').value = '';
+            document.getElementById('new-tp-rule').value = '';
+            document.getElementById('new-sl-rule').value = '';
+        }
+
+        async function createNewTheme() {
+            const themeName = document.getElementById('new-theme-name').value.trim();
+            
+            if (!themeName) {
+                alert('テーマ名を入力してください');
+                return;
+            }
+            
+            updateSyncStatus('syncing', '● 保存中...');
+            
+            const data = {
+                themeName: themeName,
+                pair: document.getElementById('new-pair').value.trim(),
+                period: document.getElementById('new-period').value.trim(),
+                trendTimeframe: document.getElementById('new-trend-tf').value.trim(),
+                tradeTimeframe: document.getElementById('new-trade-tf').value.trim(),
+                entryRule: document.getElementById('new-entry-rule').value.trim(),
+                tpRule: document.getElementById('new-tp-rule').value.trim(),
+                slRule: document.getElementById('new-sl-rule').value.trim()
+            };
+            
+            const result = await apiPost('addTheme', data);
+            
+            if (result.success) {
+                closeNewThemeModal();
+                await loadThemes();
+                document.getElementById('theme-select').value = result.themeId;
+                await onThemeChange();
+                alert('テーマを作成しました！');
+            } else {
+                alert('テーマの作成に失敗しました: ' + result.error);
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        // ===========================================
+        // テーマ編集
+        // ===========================================
+        function showEditThemeModal() {
+            if (!currentTheme) return;
+            
+            document.getElementById('edit-theme-name').value = currentTheme.themeName || '';
+            document.getElementById('edit-pair').value = currentTheme.pair || '';
+            document.getElementById('edit-period').value = currentTheme.period || '';
+            document.getElementById('edit-trend-tf').value = currentTheme.trendTimeframe || '';
+            document.getElementById('edit-trade-tf').value = currentTheme.tradeTimeframe || '';
+            document.getElementById('edit-entry-rule').value = currentTheme.entryRule || '';
+            document.getElementById('edit-tp-rule').value = currentTheme.tpRule || '';
+            document.getElementById('edit-sl-rule').value = currentTheme.slRule || '';
+            
+            document.getElementById('editThemeModal').style.display = 'block';
+        }
+
+        function closeEditThemeModal() {
+            document.getElementById('editThemeModal').style.display = 'none';
+        }
+
+        async function updateTheme() {
+            if (!currentTheme) return;
+            
+            const themeName = document.getElementById('edit-theme-name').value.trim();
+            
+            if (!themeName) {
+                alert('テーマ名を入力してください');
+                return;
+            }
+            
+            updateSyncStatus('syncing', '● 保存中...');
+            
+            const data = {
+                themeId: currentTheme.themeId,
+                themeName: themeName,
+                pair: document.getElementById('edit-pair').value.trim(),
+                period: document.getElementById('edit-period').value.trim(),
+                trendTimeframe: document.getElementById('edit-trend-tf').value.trim(),
+                tradeTimeframe: document.getElementById('edit-trade-tf').value.trim(),
+                entryRule: document.getElementById('edit-entry-rule').value.trim(),
+                tpRule: document.getElementById('edit-tp-rule').value.trim(),
+                slRule: document.getElementById('edit-sl-rule').value.trim()
+            };
+            
+            const result = await apiPost('updateTheme', data);
+            
+            if (result.success) {
+                closeEditThemeModal();
+                await loadThemes();
+                document.getElementById('theme-select').value = currentTheme.themeId;
+                await onThemeChange();
+                alert('テーマを更新しました！');
+            } else {
+                alert('テーマの更新に失敗しました: ' + result.error);
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        // ===========================================
+        // テーマ削除
+        // ===========================================
+        async function deleteCurrentTheme() {
+            if (!currentTheme) return;
+            
+            if (!confirm(`テーマ「${currentTheme.themeName}」とその全ての検証記録を削除しますか？\nこの操作は取り消せません。`)) {
+                return;
+            }
+            
+            updateSyncStatus('syncing', '● 削除中...');
+            
+            const result = await apiPost('deleteTheme', { themeId: currentTheme.themeId });
+            
+            if (result.success) {
+                await loadThemes();
+                document.getElementById('theme-select').value = '';
+                await onThemeChange();
+                alert('テーマを削除しました');
+            } else {
+                alert('テーマの削除に失敗しました: ' + result.error);
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        // ===========================================
+        // 検証記録
+        // ===========================================
+        async function loadRecords() {
+            if (!currentTheme) return;
+            
+            updateSyncStatus('syncing', '● 読み込み中...');
+            
+            const result = await apiGet('getRecords', { themeId: currentTheme.themeId });
+            
+            if (result.success) {
+                records = result.data || [];
+                updateTable();
+                updateStats();
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        function toggleFields() {
+            const result = document.querySelector('input[name="result"]:checked');
+            const pipsField = document.getElementById('pips-field');
+            const skipReasonField = document.getElementById('skip-reason-field');
+            
+            document.getElementById('label-win').className = '';
+            document.getElementById('label-lose').className = '';
+            document.getElementById('label-skip').className = '';
+            
+            if (result) {
+                if (result.value === 'win') {
+                    document.getElementById('label-win').className = 'selected-win';
+                    pipsField.style.display = 'block';
+                    skipReasonField.style.display = 'none';
+                    document.getElementById('skip-reason').value = '';
+                    document.getElementById('pips').focus();
+                } else if (result.value === 'lose') {
+                    document.getElementById('label-lose').className = 'selected-lose';
+                    pipsField.style.display = 'block';
+                    skipReasonField.style.display = 'none';
+                    document.getElementById('skip-reason').value = '';
+                    document.getElementById('pips').focus();
+                } else if (result.value === 'skip') {
+                    document.getElementById('label-skip').className = 'selected-skip';
+                    pipsField.style.display = 'none';
+                    skipReasonField.style.display = 'block';
+                    document.getElementById('pips').value = '';
+                    document.getElementById('skip-reason').focus();
+                }
+            }
+        }
+
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                addRecord();
+            }
+        }
+
+        async function addRecord() {
+            if (!currentTheme) {
+                alert('テーマを選択してください');
+                return;
+            }
+            
+            const result = document.querySelector('input[name="result"]:checked');
+            const pips = document.getElementById('pips').value;
+            const skipReason = document.getElementById('skip-reason').value;
+
+            if (!result) {
+                alert('結果を選択してください');
+                return;
+            }
+
+            if ((result.value === 'win' || result.value === 'lose') && !pips) {
+                alert('pipsを入力してください');
+                return;
+            }
+
+            if (result.value === 'skip' && !skipReason) {
+                alert('見送り理由を選択してください');
+                return;
+            }
+
+            let pipsValue = 0;
+            if (result.value === 'win') {
+                pipsValue = parseFloat(pips);
+            } else if (result.value === 'lose') {
+                pipsValue = -Math.abs(parseFloat(pips));
+            }
+
+            updateSyncStatus('syncing', '● 保存中...');
+
+            const data = {
+                themeId: currentTheme.themeId,
+                result: result.value,
+                pips: pipsValue,
+                skipReason: skipReason || ''
+            };
+
+            const apiResult = await apiPost('addRecord', data);
+
+            if (apiResult.success) {
+                // フォームをクリア
+                document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+                document.getElementById('skip-reason').value = '';
+                document.getElementById('pips').value = '';
+                document.getElementById('pips-field').style.display = 'none';
+                document.getElementById('skip-reason-field').style.display = 'none';
+                document.getElementById('label-win').className = '';
+                document.getElementById('label-lose').className = '';
+                document.getElementById('label-skip').className = '';
+
+                await loadRecords();
+            } else {
+                alert('記録の保存に失敗しました: ' + apiResult.error);
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        async function deleteRecord(recordId) {
+            if (!confirm('この記録を削除しますか？')) return;
+            
+            updateSyncStatus('syncing', '● 削除中...');
+            
+            const result = await apiPost('deleteRecord', { recordId: recordId });
+            
+            if (result.success) {
+                await loadRecords();
+            } else {
+                alert('記録の削除に失敗しました: ' + result.error);
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        async function clearAllData() {
+            if (!currentTheme) return;
+            
+            if (!confirm(`テーマ「${currentTheme.themeName}」の全ての検証データを削除しますか？`)) {
+                return;
+            }
+            
+            updateSyncStatus('syncing', '● 削除中...');
+            
+            const result = await apiPost('clearRecords', { themeId: currentTheme.themeId });
+            
+            if (result.success) {
+                await loadRecords();
+                alert('全てのデータを削除しました');
+            } else {
+                alert('データの削除に失敗しました: ' + result.error);
+            }
+            
+            updateSyncStatus('connected', '● スプレッドシート接続中');
+        }
+
+        // ===========================================
+        // 表示更新
+        // ===========================================
+        function getSkipReasonText(reason) {
+            const reasons = {
+                'fear': '恐怖・不安',
+                'uncertainty': '確信が持てず',
+                'distracted': 'チャート未確認',
+                'position': '既存ポジション',
+                'time': '時間帯',
+                'news': '指標回避',
+                'other': 'その他'
+            };
+            return reasons[reason] || reason;
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('records-body');
+            tbody.innerHTML = '';
+
+            records.forEach((record, index) => {
+                const row = tbody.insertRow();
+                const pipsValue = parseFloat(record.pips) || 0;
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td class="${record.result === 'win' ? 'result-win' : record.result === 'lose' ? 'result-lose' : ''}">${record.result === 'win' ? '勝ち' : record.result === 'lose' ? '負け' : '見送り'}</td>
+                    <td class="${pipsValue > 0 ? 'positive' : pipsValue < 0 ? 'negative' : ''}">${pipsValue !== 0 ? pipsValue.toFixed(1) : '-'}</td>
+                    <td>${record.skipReason ? `<span class="skip-reason">${getSkipReasonText(record.skipReason)}</span>` : '-'}</td>
+                    <td><button class="delete-btn" onclick="deleteRecord('${record.recordId}')">削除</button></td>
+                `;
+            });
+        }
+
+        function updateStats() {
+            const totalCount = records.length;
+            const trades = records.filter(r => r.result === 'win' || r.result === 'lose');
+            const wins = records.filter(r => r.result === 'win');
+            const losses = records.filter(r => r.result === 'lose');
+            
+            const tradeCount = trades.length;
+            const winCount = wins.length;
+            const lossCount = losses.length;
+            const winRate = tradeCount > 0 ? (winCount / tradeCount * 100).toFixed(1) : 0;
+            
+            const totalPips = trades.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0);
+            const expectedValue = tradeCount > 0 ? (totalPips / tradeCount).toFixed(1) : 0;
+
+            document.getElementById('total-count').textContent = totalCount;
+            document.getElementById('trade-count').textContent = tradeCount;
+            document.getElementById('win-rate').textContent = winRate + '%';
+            document.getElementById('win-lose').textContent = `${winCount}勝${lossCount}敗`;
+            document.getElementById('total-pips').textContent = totalPips.toFixed(1) + ' pips';
+            document.getElementById('total-pips').className = totalPips >= 0 ? 'stat-value positive' : 'stat-value negative';
+            document.getElementById('expected-value').textContent = expectedValue + ' pips';
+            document.getElementById('expected-value').className = expectedValue >= 0 ? 'stat-value positive' : 'stat-value negative';
+            
+            document.getElementById('quick-total').textContent = tradeCount;
+            document.getElementById('quick-winrate').textContent = winRate;
+            document.getElementById('quick-pips').textContent = totalPips.toFixed(0);
+            document.getElementById('quick-pips').style.color = totalPips >= 0 ? '#4CAF50' : '#f44336';
+        }
+
+        // ===========================================
+        // 詳細レポート
+        // ===========================================
+        function showDetailedReport() {
+            if (!currentTheme) return;
+            
+            const trades = records.filter(r => r.result === 'win' || r.result === 'lose');
+            const wins = records.filter(r => r.result === 'win');
+            const losses = records.filter(r => r.result === 'lose');
+            const skips = records.filter(r => r.result === 'skip');
+            
+            const totalWinPips = wins.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0);
+            const totalLossPips = Math.abs(losses.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0));
+            const netPips = totalWinPips - totalLossPips;
+            const avgWin = wins.length > 0 ? (totalWinPips / wins.length) : 0;
+            const avgLoss = losses.length > 0 ? (totalLossPips / losses.length) : 0;
+            
+            let reportHTML = `
+                <div class="report-section">
+                    <h4>基本情報</h4>
+                    <div class="report-grid">
+                        <div class="report-item">
+                            <div class="report-label">検証テーマ</div>
+                            <div class="report-value">${currentTheme.themeName || '未設定'}</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">通貨ペア</div>
+                            <div class="report-value">${currentTheme.pair || '未設定'}</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">検証期間</div>
+                            <div class="report-value">${currentTheme.period || '未設定'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h4>トレード成績</h4>
+                    <div class="report-grid">
+                        <div class="report-item">
+                            <div class="report-label">トレード回数</div>
+                            <div class="report-value">${trades.length}回</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">勝敗</div>
+                            <div class="report-value">${wins.length}勝${losses.length}敗</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">勝率</div>
+                            <div class="report-value">${trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h4>損益分析</h4>
+                    <div class="report-grid">
+                        <div class="report-item">
+                            <div class="report-label">総利益</div>
+                            <div class="report-value positive">+${totalWinPips.toFixed(0)} pips</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">総損失</div>
+                            <div class="report-value negative">-${totalLossPips.toFixed(0)} pips</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">純損益</div>
+                            <div class="report-value ${netPips >= 0 ? 'positive' : 'negative'}">${netPips >= 0 ? '+' : ''}${netPips.toFixed(0)} pips</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">平均利益</div>
+                            <div class="report-value positive">+${avgWin.toFixed(0)} pips</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">平均損失</div>
+                            <div class="report-value negative">-${avgLoss.toFixed(0)} pips</div>
+                        </div>
+                        <div class="report-item">
+                            <div class="report-label">リスクリワード比</div>
+                            <div class="report-value">${avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '0'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (skips.length > 0) {
+                const reasonCounts = {};
+                skips.forEach(record => {
+                    if (record.skipReason) {
+                        reasonCounts[record.skipReason] = (reasonCounts[record.skipReason] || 0) + 1;
+                    }
+                });
+
+                reportHTML += `
+                    <div class="report-section">
+                        <h4>見送り理由分析（${skips.length}回）</h4>
+                        <div class="report-grid">
+                `;
+                
+                for (const [reason, count] of Object.entries(reasonCounts)) {
+                    const percentage = (count / skips.length * 100).toFixed(1);
+                    reportHTML += `
+                        <div class="report-item">
+                            <div class="report-label">${getSkipReasonText(reason)}</div>
+                            <div class="report-value">${count}回 (${percentage}%)</div>
+                        </div>
+                    `;
+                }
+                
+                reportHTML += `</div></div>`;
+            }
+
+            document.getElementById('detailed-report').innerHTML = reportHTML;
+            document.getElementById('reportModal').style.display = 'block';
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
+
+        // モーダルは×ボタンでのみ閉じる（誤操作防止）
+    </script>
+</body>
+</html>
