@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FX手法検証ツール - スプレッドシート連携版</title>
+    <title>Edge Finder - スプレッドシート連携版</title>
     <style>
         * {
             box-sizing: border-box;
@@ -376,22 +376,6 @@
             border-left: 4px solid #fbc02d;
         }
         
-        /* ローディング */
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        .loading::after {
-            content: '';
-            animation: dots 1.5s infinite;
-        }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
-        
         /* テーマ情報表示 */
         .current-theme-info {
             background: #e3f2fd;
@@ -410,6 +394,24 @@
             margin: 5px 0;
         }
         
+        /* 連勝連敗詳細 */
+        .streak-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .streak-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .streak-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
         /* レスポンシブ */
         @media (max-width: 600px) {
             body { padding: 10px; }
@@ -425,8 +427,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>FX手法検証ツール</h1>
-        <p class="subtitle">スプレッドシート連携版 v1.0</p>
+        <h1>📊 Edge Finder</h1>
+        <p class="subtitle">FX手法検証ツール - スプレッドシート連携版</p>
         <div style="text-align: center;">
             <span id="sync-status" class="sync-status disconnected">● 接続確認中...</span>
         </div>
@@ -487,16 +489,7 @@
             <div id="skip-reason-field" style="display: none;">
                 <div class="form-group">
                     <label for="skip-reason">見送り理由</label>
-                    <select id="skip-reason" onchange="if(this.value) addRecord()">
-                        <option value="">選択してください</option>
-                        <option value="fear">恐怖・不安を感じた</option>
-                        <option value="uncertainty">確信が持てなかった</option>
-                        <option value="distracted">チャートを見ていなかった</option>
-                        <option value="position">既にポジションを持っていた</option>
-                        <option value="time">時間帯が悪い</option>
-                        <option value="news">重要指標前後</option>
-                        <option value="other">その他</option>
-                    </select>
+                    <input type="text" id="skip-reason" placeholder="例：トレンドが不明確だった" onkeypress="handleSkipEnterKey(event)">
                 </div>
             </div>
 
@@ -545,6 +538,7 @@
             <h2>検証記録</h2>
             <div class="action-buttons">
                 <button class="report-btn" onclick="showDetailedReport()">詳細レポート表示</button>
+                <button class="export-btn" onclick="exportToCSV()">CSVエクスポート</button>
                 <button class="delete-btn" onclick="clearAllData()">このテーマの全データ削除</button>
             </div>
             <div style="overflow-x: auto;">
@@ -1022,6 +1016,12 @@
             }
         }
 
+        function handleSkipEnterKey(event) {
+            if (event.key === 'Enter') {
+                addRecord();
+            }
+        }
+
         async function addRecord() {
             if (!currentTheme) {
                 alert('テーマを選択してください');
@@ -1043,7 +1043,7 @@
             }
 
             if (result.value === 'skip' && !skipReason) {
-                alert('見送り理由を選択してください');
+                alert('見送り理由を入力してください');
                 return;
             }
 
@@ -1125,16 +1125,7 @@
         // 表示更新
         // ===========================================
         function getSkipReasonText(reason) {
-            const reasons = {
-                'fear': '恐怖・不安',
-                'uncertainty': '確信が持てず',
-                'distracted': 'チャート未確認',
-                'position': '既存ポジション',
-                'time': '時間帯',
-                'news': '指標回避',
-                'other': 'その他'
-            };
-            return reasons[reason] || reason;
+            return reason || '-';
         }
 
         function updateTable() {
@@ -1185,6 +1176,70 @@
         }
 
         // ===========================================
+        // 連勝・連敗計算
+        // ===========================================
+        function calculateStreaks() {
+            const trades = records.filter(r => r.result === 'win' || r.result === 'lose');
+            if (trades.length === 0) return null;
+
+            let currentStreak = 0;
+            let maxWinStreak = 0;
+            let maxLoseStreak = 0;
+            let streakType = '';
+            
+            const winStreaks = {};
+            const loseStreaks = {};
+            let currentWinStreak = 0;
+            let currentLoseStreak = 0;
+
+            trades.forEach((record, index) => {
+                if (record.result === 'win') {
+                    if (streakType === 'win') {
+                        currentStreak++;
+                        currentWinStreak++;
+                    } else {
+                        if (currentLoseStreak > 0) {
+                            loseStreaks[currentLoseStreak] = (loseStreaks[currentLoseStreak] || 0) + 1;
+                        }
+                        currentStreak = 1;
+                        currentWinStreak = 1;
+                        currentLoseStreak = 0;
+                        streakType = 'win';
+                    }
+                    maxWinStreak = Math.max(maxWinStreak, currentStreak);
+                } else if (record.result === 'lose') {
+                    if (streakType === 'lose') {
+                        currentStreak++;
+                        currentLoseStreak++;
+                    } else {
+                        if (currentWinStreak > 0) {
+                            winStreaks[currentWinStreak] = (winStreaks[currentWinStreak] || 0) + 1;
+                        }
+                        currentStreak = 1;
+                        currentLoseStreak = 1;
+                        currentWinStreak = 0;
+                        streakType = 'lose';
+                    }
+                    maxLoseStreak = Math.max(maxLoseStreak, currentStreak);
+                }
+            });
+
+            if (currentWinStreak > 0) {
+                winStreaks[currentWinStreak] = (winStreaks[currentWinStreak] || 0) + 1;
+            }
+            if (currentLoseStreak > 0) {
+                loseStreaks[currentLoseStreak] = (loseStreaks[currentLoseStreak] || 0) + 1;
+            }
+
+            return {
+                maxWinStreak,
+                maxLoseStreak,
+                winStreaks,
+                loseStreaks
+            };
+        }
+
+        // ===========================================
         // 詳細レポート
         // ===========================================
         function showDetailedReport() {
@@ -1194,6 +1249,8 @@
             const wins = records.filter(r => r.result === 'win');
             const losses = records.filter(r => r.result === 'lose');
             const skips = records.filter(r => r.result === 'skip');
+            
+            const streaks = calculateStreaks();
             
             const totalWinPips = wins.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0);
             const totalLossPips = Math.abs(losses.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0));
@@ -1269,31 +1326,74 @@
                 </div>
             `;
 
-            if (skips.length > 0) {
-                const reasonCounts = {};
-                skips.forEach(record => {
-                    if (record.skipReason) {
-                        reasonCounts[record.skipReason] = (reasonCounts[record.skipReason] || 0) + 1;
-                    }
-                });
-
+            if (streaks) {
                 reportHTML += `
                     <div class="report-section">
-                        <h4>見送り理由分析（${skips.length}回）</h4>
+                        <h4>連勝・連敗記録</h4>
                         <div class="report-grid">
-                `;
-                
-                for (const [reason, count] of Object.entries(reasonCounts)) {
-                    const percentage = (count / skips.length * 100).toFixed(1);
-                    reportHTML += `
-                        <div class="report-item">
-                            <div class="report-label">${getSkipReasonText(reason)}</div>
-                            <div class="report-value">${count}回 (${percentage}%)</div>
+                            <div class="report-item">
+                                <div class="report-label">最大連勝数</div>
+                                <div class="report-value positive">${streaks.maxWinStreak}</div>
+                            </div>
+                            <div class="report-item">
+                                <div class="report-label">最大連敗数</div>
+                                <div class="report-value negative">${streaks.maxLoseStreak}</div>
+                            </div>
                         </div>
-                    `;
+                `;
+
+                if (Object.keys(streaks.winStreaks).length > 0) {
+                    const sortedWinStreaks = Object.entries(streaks.winStreaks)
+                        .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+                        .filter(([streak, count]) => parseInt(streak) > 1);
+                    
+                    if (sortedWinStreaks.length > 0) {
+                        reportHTML += `
+                            <div class="streak-details">
+                                <h5>連勝の詳細</h5>
+                                <ul class="streak-list">
+                        `;
+                        sortedWinStreaks.forEach(([streak, count]) => {
+                            reportHTML += `<li>${streak}連勝: ${count}回</li>`;
+                        });
+                        reportHTML += `</ul></div>`;
+                    }
+                }
+
+                if (Object.keys(streaks.loseStreaks).length > 0) {
+                    const sortedLoseStreaks = Object.entries(streaks.loseStreaks)
+                        .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+                        .filter(([streak, count]) => parseInt(streak) > 1);
+                    
+                    if (sortedLoseStreaks.length > 0) {
+                        reportHTML += `
+                            <div class="streak-details">
+                                <h5>連敗の詳細</h5>
+                                <ul class="streak-list">
+                        `;
+                        sortedLoseStreaks.forEach(([streak, count]) => {
+                            reportHTML += `<li>${streak}連敗: ${count}回</li>`;
+                        });
+                        reportHTML += `</ul></div>`;
+                    }
                 }
                 
-                reportHTML += `</div></div>`;
+                reportHTML += `</div>`;
+            }
+
+            if (skips.length > 0) {
+                reportHTML += `
+                    <div class="report-section">
+                        <h4>見送り理由一覧（${skips.length}回）</h4>
+                        <div class="streak-details">
+                            <ul class="streak-list">
+                `;
+                
+                skips.forEach((record, index) => {
+                    reportHTML += `<li>${index + 1}. ${record.skipReason || '-'}</li>`;
+                });
+                
+                reportHTML += `</ul></div></div>`;
             }
 
             document.getElementById('detailed-report').innerHTML = reportHTML;
@@ -1304,7 +1404,75 @@
             document.getElementById('reportModal').style.display = 'none';
         }
 
-        // モーダルは×ボタンでのみ閉じる（誤操作防止）
+        // ===========================================
+        // CSVエクスポート
+        // ===========================================
+        function exportToCSV() {
+            if (!currentTheme) return;
+            
+            if (records.length === 0) {
+                alert('エクスポートするデータがありません');
+                return;
+            }
+
+            const trades = records.filter(r => r.result === 'win' || r.result === 'lose');
+            const wins = records.filter(r => r.result === 'win');
+            const losses = records.filter(r => r.result === 'lose');
+            const streaks = calculateStreaks();
+            
+            const totalWinPips = wins.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0);
+            const totalLossPips = Math.abs(losses.reduce((sum, r) => sum + (parseFloat(r.pips) || 0), 0));
+
+            let csv = '\uFEFF'; // BOM for Excel
+            csv += '=== 検証設定 ===\n';
+            csv += '検証テーマ,' + (currentTheme.themeName || '') + '\n';
+            csv += '通貨ペア,' + (currentTheme.pair || '') + '\n';
+            csv += '検証期間,' + (currentTheme.period || '') + '\n';
+            csv += 'トレンド判断,' + (currentTheme.trendTimeframe || '') + '\n';
+            csv += 'トレード,' + (currentTheme.tradeTimeframe || '') + '\n';
+            csv += 'エントリールール,"' + (currentTheme.entryRule || '').replace(/"/g, '""') + '"\n';
+            csv += '利確ルール,' + (currentTheme.tpRule || '') + '\n';
+            csv += '損切ルール,' + (currentTheme.slRule || '') + '\n';
+            csv += '\n';
+            
+            csv += '=== 検証結果サマリー ===\n';
+            csv += 'トレード回数,' + trades.length + '回\n';
+            csv += '勝敗,' + wins.length + '勝' + losses.length + '敗\n';
+            csv += '勝率,' + (trades.length > 0 ? (wins.length / trades.length * 100).toFixed(1) : 0) + '%\n';
+            csv += '総利益,' + totalWinPips.toFixed(0) + ' pips\n';
+            csv += '総損失,' + totalLossPips.toFixed(0) + ' pips\n';
+            csv += '純損益,' + (totalWinPips - totalLossPips).toFixed(0) + ' pips\n';
+            csv += '平均利益,' + (wins.length > 0 ? (totalWinPips / wins.length).toFixed(0) : 0) + ' pips\n';
+            csv += '平均損失,' + (losses.length > 0 ? (totalLossPips / losses.length).toFixed(0) : 0) + ' pips\n';
+            
+            if (streaks) {
+                csv += '最大連勝数,' + streaks.maxWinStreak + '\n';
+                csv += '最大連敗数,' + streaks.maxLoseStreak + '\n';
+            }
+            
+            csv += '\n=== 検証記録詳細 ===\n';
+            csv += 'No,結果,pips,理由\n';
+
+            records.forEach((record, index) => {
+                const pipsValue = parseFloat(record.pips) || 0;
+                csv += `${index + 1},`;
+                csv += `${record.result === 'win' ? '勝ち' : record.result === 'lose' ? '負け' : '見送り'},`;
+                csv += `${pipsValue !== 0 ? pipsValue.toFixed(1) : '-'},`;
+                csv += `"${record.skipReason ? record.skipReason.replace(/"/g, '""') : '-'}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const filename = `EdgeFinder_${currentTheme.pair || 'データ'}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
