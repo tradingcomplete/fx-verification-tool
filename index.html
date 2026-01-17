@@ -944,26 +944,30 @@
                             <input type="number" id="entry-price" step="any" placeholder="例: 150.500" oninput="updateCalc()">
                         </div>
                         <div class="price-input-group">
-                            <label>決済価格</label>
-                            <input type="number" id="exit-price" step="any" placeholder="例: 151.000" oninput="updateCalc()">
+                            <label>計画利確価格</label>
+                            <input type="number" id="tp-price" step="any" placeholder="例: 151.500" oninput="updateCalc()">
                         </div>
                         <div class="price-input-group">
                             <label>計画損切価格</label>
                             <input type="number" id="sl-price" step="any" placeholder="例: 150.200" oninput="updateCalc()">
                         </div>
+                        <div class="price-input-group">
+                            <label>決済価格</label>
+                            <input type="number" id="exit-price" step="any" placeholder="例: 151.000" oninput="updateCalc()">
+                        </div>
                     </div>
 
                     <div class="calc-result" id="calc-result" style="display: none;">
+                        <div class="calc-item">
+                            <div class="calc-item-label">計画RR</div>
+                            <div class="calc-item-value" id="calc-plan-rr">-</div>
+                        </div>
                         <div class="calc-item">
                             <div class="calc-item-label">損益</div>
                             <div class="calc-item-value" id="calc-pips">- pips</div>
                         </div>
                         <div class="calc-item">
-                            <div class="calc-item-label">計画リスク</div>
-                            <div class="calc-item-value" id="calc-risk">- pips</div>
-                        </div>
-                        <div class="calc-item">
-                            <div class="calc-item-label">RR比</div>
+                            <div class="calc-item-label">実現RR</div>
                             <div class="calc-item-value" id="calc-rr">-</div>
                         </div>
                     </div>
@@ -1059,9 +1063,12 @@
                                 <th>No.</th>
                                 <th>方向</th>
                                 <th>Entry</th>
+                                <th>TP</th>
+                                <th>SL</th>
                                 <th>Exit</th>
-                                <th>損益pips</th>
-                                <th>RR</th>
+                                <th>損益</th>
+                                <th>計画RR</th>
+                                <th>実現RR</th>
                                 <th>削除</th>
                             </tr>
                         </thead>
@@ -1371,7 +1378,7 @@
                 stepValue = '0.0001';
             }
             
-            const priceInputs = ['entry-price', 'exit-price', 'sl-price'];
+            const priceInputs = ['entry-price', 'tp-price', 'sl-price', 'exit-price'];
             priceInputs.forEach(id => {
                 const input = document.getElementById(id);
                 input.setAttribute('step', stepValue);
@@ -1575,26 +1582,36 @@
         function updateCalc() {
             const direction = document.querySelector('input[name="direction"]:checked');
             const entryPrice = parseFloat(document.getElementById('entry-price').value);
-            const exitPrice = parseFloat(document.getElementById('exit-price').value);
+            const tpPrice = parseFloat(document.getElementById('tp-price').value);
             const slPrice = parseFloat(document.getElementById('sl-price').value);
+            const exitPrice = parseFloat(document.getElementById('exit-price').value);
 
             const calcResult = document.getElementById('calc-result');
 
-            if (!direction || isNaN(entryPrice) || isNaN(exitPrice) || isNaN(slPrice)) {
+            if (!direction || isNaN(entryPrice) || isNaN(tpPrice) || isNaN(slPrice) || isNaN(exitPrice)) {
                 calcResult.style.display = 'none';
                 return;
             }
 
             calcResult.style.display = 'grid';
 
+            // リスク（SLまでの距離）
+            const risk = Math.abs(calculatePips(entryPrice, slPrice, direction.value));
+            // リワード（TPまでの距離）
+            const reward = Math.abs(calculatePips(entryPrice, tpPrice, direction.value));
+            // 計画RR
+            const planRR = risk > 0 ? (reward / risk) : 0;
+            const planRREl = document.getElementById('calc-plan-rr');
+            planRREl.textContent = planRR.toFixed(2);
+            planRREl.className = 'calc-item-value ' + (planRR >= 1 ? 'positive' : '');
+
+            // 実際の損益
             const pips = calculatePips(entryPrice, exitPrice, direction.value);
             const pipsEl = document.getElementById('calc-pips');
             pipsEl.textContent = pips.toFixed(1) + ' pips';
             pipsEl.className = 'calc-item-value ' + (pips >= 0 ? 'positive' : 'negative');
 
-            const risk = Math.abs(calculatePips(entryPrice, slPrice, direction.value));
-            document.getElementById('calc-risk').textContent = risk.toFixed(1) + ' pips';
-
+            // 実現RR
             const rr = risk > 0 ? (pips / risk) : 0;
             const rrEl = document.getElementById('calc-rr');
             rrEl.textContent = rr.toFixed(2);
@@ -1612,20 +1629,23 @@
 
             const direction = document.querySelector('input[name="direction"]:checked');
             const entryPrice = parseFloat(document.getElementById('entry-price').value);
-            const exitPrice = parseFloat(document.getElementById('exit-price').value);
+            const tpPrice = parseFloat(document.getElementById('tp-price').value);
             const slPrice = parseFloat(document.getElementById('sl-price').value);
+            const exitPrice = parseFloat(document.getElementById('exit-price').value);
 
             if (!direction) {
                 alert('売買方向を選択してください');
                 return;
             }
-            if (isNaN(entryPrice) || isNaN(exitPrice) || isNaN(slPrice)) {
+            if (isNaN(entryPrice) || isNaN(tpPrice) || isNaN(slPrice) || isNaN(exitPrice)) {
                 alert('全ての価格を入力してください');
                 return;
             }
 
             const pips = calculatePips(entryPrice, exitPrice, direction.value);
             const risk = Math.abs(calculatePips(entryPrice, slPrice, direction.value));
+            const reward = Math.abs(calculatePips(entryPrice, tpPrice, direction.value));
+            const planRR = risk > 0 ? (reward / risk) : 0;
             const rr = risk > 0 ? (pips / risk) : 0;
 
             updateSyncStatus('syncing', '● 保存中...');
@@ -1634,10 +1654,12 @@
                 themeId: currentTheme.themeId,
                 direction: direction.value,
                 entryPrice: entryPrice,
-                exitPrice: exitPrice,
+                tpPrice: tpPrice,
                 slPrice: slPrice,
+                exitPrice: exitPrice,
                 pips: pips,
                 risk: risk,
+                planRR: planRR,
                 rr: rr,
                 result: pips >= 0 ? 'win' : 'lose'
             };
@@ -1647,8 +1669,9 @@
             if (result.success) {
                 document.querySelectorAll('input[name="direction"]').forEach(r => r.checked = false);
                 document.getElementById('entry-price').value = '';
-                document.getElementById('exit-price').value = '';
+                document.getElementById('tp-price').value = '';
                 document.getElementById('sl-price').value = '';
+                document.getElementById('exit-price').value = '';
                 document.getElementById('calc-result').style.display = 'none';
                 await loadRecords();
             } else {
@@ -1700,6 +1723,7 @@
                 const directionClass = record.direction === 'long' ? 'direction-long' : 'direction-short';
                 const directionText = record.direction === 'long' ? '📈 L' : '📉 S';
                 const pips = parseFloat(record.pips) || 0;
+                const planRR = parseFloat(record.planRR) || 0;
                 const rr = parseFloat(record.rr) || 0;
                 const resultClass = pips >= 0 ? 'result-win' : 'result-lose';
 
@@ -1707,9 +1731,12 @@
                     <td>${index + 1}</td>
                     <td class="${directionClass}">${directionText}</td>
                     <td>${record.entryPrice}</td>
+                    <td>${record.tpPrice || '-'}</td>
+                    <td>${record.slPrice}</td>
                     <td>${record.exitPrice}</td>
                     <td class="${resultClass}">${pips >= 0 ? '+' : ''}${pips.toFixed(1)}</td>
-                    <td>${rr.toFixed(2)}</td>
+                    <td>${planRR.toFixed(2)}</td>
+                    <td class="${resultClass}">${rr.toFixed(2)}</td>
                     <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('${record.recordId}')">削除</button></td>
                 `;
             });
@@ -1924,11 +1951,12 @@
             }
 
             csv += '\n=== 詳細記録 ===\n';
-            csv += 'No,方向,Entry,Exit,SL,損益pips,RR,結果\n';
+            csv += 'No,方向,Entry,TP,SL,Exit,損益pips,計画RR,実現RR,結果\n';
             records.forEach((record, index) => {
                 const pips = parseFloat(record.pips) || 0;
+                const planRR = parseFloat(record.planRR) || 0;
                 const rr = parseFloat(record.rr) || 0;
-                csv += `${index + 1},${record.direction},${record.entryPrice},${record.exitPrice},${record.slPrice},${pips.toFixed(1)},${rr.toFixed(2)},${record.result === 'win' ? '勝ち' : '負け'}\n`;
+                csv += `${index + 1},${record.direction},${record.entryPrice},${record.tpPrice || ''},${record.slPrice},${record.exitPrice},${pips.toFixed(1)},${planRR.toFixed(2)},${rr.toFixed(2)},${record.result === 'win' ? '勝ち' : '負け'}\n`;
             });
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
