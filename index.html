@@ -944,12 +944,12 @@
                             <input type="number" id="entry-price" step="any" placeholder="例: 150.500" oninput="updateCalc()">
                         </div>
                         <div class="price-input-group">
-                            <label>計画利確価格</label>
-                            <input type="number" id="tp-price" step="any" placeholder="例: 151.500" oninput="updateCalc()">
-                        </div>
-                        <div class="price-input-group">
                             <label>計画損切価格</label>
                             <input type="number" id="sl-price" step="any" placeholder="例: 150.200" oninput="updateCalc()">
+                        </div>
+                        <div class="price-input-group">
+                            <label>計画利確価格</label>
+                            <input type="number" id="tp-price" step="any" placeholder="例: 151.500" oninput="updateCalc()">
                         </div>
                         <div class="price-input-group">
                             <label>決済価格</label>
@@ -1852,6 +1852,36 @@
 
             const streaks = calculateStreaks();
 
+            // 計画RR分析
+            const avgPlanRR = records.length > 0 ? records.reduce((sum, r) => sum + (parseFloat(r.planRR) || 0), 0) / records.length : 0;
+            const avgRealizedRR = records.length > 0 ? records.reduce((sum, r) => sum + (parseFloat(r.rr) || 0), 0) / records.length : 0;
+            
+            // TP到達率（勝ちトレードのうち、実現RR >= 計画RR の割合）
+            const tpReachedCount = wins.filter(r => (parseFloat(r.rr) || 0) >= (parseFloat(r.planRR) || 0)).length;
+            const tpReachRate = wins.length > 0 ? (tpReachedCount / wins.length * 100).toFixed(1) : 0;
+            
+            // 計画RR別勝率（5区分）
+            const rrRanges = [
+                { label: '1.0未満', min: -Infinity, max: 1.0 },
+                { label: '1.0〜1.5', min: 1.0, max: 1.5 },
+                { label: '1.5〜2.0', min: 1.5, max: 2.0 },
+                { label: '2.0〜3.0', min: 2.0, max: 3.0 },
+                { label: '3.0以上', min: 3.0, max: Infinity }
+            ];
+            const rrStats = rrRanges.map(range => {
+                const inRange = records.filter(r => {
+                    const prr = parseFloat(r.planRR) || 0;
+                    return prr >= range.min && prr < range.max;
+                });
+                const inRangeWins = inRange.filter(r => r.result === 'win').length;
+                return {
+                    label: range.label,
+                    count: inRange.length,
+                    wins: inRangeWins,
+                    winRate: inRange.length > 0 ? (inRangeWins / inRange.length * 100).toFixed(1) : '-'
+                };
+            });
+
             let html = `
                 <div class="report-section">
                     <h4>📌 基本情報</h4>
@@ -1887,6 +1917,18 @@
                         <div class="report-item"><div class="report-label">平均RR</div><div class="report-value">${typeof avgRR === 'number' ? avgRR.toFixed(2) : avgRR}</div></div>
                         <div class="report-item"><div class="report-label">最大連勝</div><div class="report-value positive">${streaks ? streaks.maxWinStreak : 0}</div></div>
                         <div class="report-item"><div class="report-label">最大連敗</div><div class="report-value negative">${streaks ? streaks.maxLoseStreak : 0}</div></div>
+                    </div>
+                </div>
+                <div class="report-section">
+                    <h4>🎯 計画RR分析</h4>
+                    <div class="report-grid">
+                        <div class="report-item"><div class="report-label">平均計画RR</div><div class="report-value">${avgPlanRR.toFixed(2)}</div></div>
+                        <div class="report-item"><div class="report-label">平均実現RR</div><div class="report-value ${avgRealizedRR >= 0 ? 'positive' : 'negative'}">${avgRealizedRR.toFixed(2)}</div></div>
+                        <div class="report-item"><div class="report-label">TP到達率</div><div class="report-value">${tpReachRate}%</div></div>
+                    </div>
+                    <h4 style="margin-top: 15px; font-size: 13px; color: var(--primary);">計画RR別勝率</h4>
+                    <div class="report-grid" style="margin-top: 8px;">
+                        ${rrStats.map(s => `<div class="report-item"><div class="report-label">${s.label}</div><div class="report-value">${s.winRate}%<span style="font-size: 11px; color: var(--text-light);"> (${s.count}回)</span></div></div>`).join('')}
                     </div>
                 </div>
                 <div class="report-section">
