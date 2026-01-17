@@ -972,7 +972,7 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-primary" onclick="addRecord()" style="width: 100%; justify-content: center; margin-top: 15px;">
+                    <button id="add-record-btn" class="btn btn-primary" onclick="addRecord()" style="width: 100%; justify-content: center; margin-top: 15px;">
                         記録を追加
                     </button>
 
@@ -1648,6 +1648,11 @@
             const planRR = risk > 0 ? (reward / risk) : 0;
             const rr = risk > 0 ? (pips / risk) : 0;
 
+            // ボタンを無効化して「保存中...」に変更
+            const addBtn = document.getElementById('add-record-btn');
+            addBtn.disabled = true;
+            addBtn.textContent = '保存中...';
+            
             updateSyncStatus('syncing', '● 保存中...');
 
             const recordData = {
@@ -1665,6 +1670,10 @@
             };
 
             const result = await apiPost('addRecord', recordData);
+
+            // ボタンを元に戻す
+            addBtn.disabled = false;
+            addBtn.textContent = '記録を追加';
 
             if (result.success) {
                 document.querySelectorAll('input[name="direction"]').forEach(r => r.checked = false);
