@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edge Finder Cloud - FX手法検証ツール</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="icon" href="data:image/x-icon;base64,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Qv/BaET/v2hD/79oQf+/aUH/wWpA/8FpP//Caj//xGtA/8VrP//GbD7/xW0+/8VuP//EbT//w2w//8RsP//Daz//wWs//8JqP/+/aT//vWg+/7xiOf+8Yjj/vmI2/8JsRP+9ZTz/tlwz/7lkO/+/ZDr/vmQ6/71iN/+9Yjf/vWI3/7xgNv+6Yjf/umg//7tsQv+8bED/vm1A/71uPf+/bj7/wW8+/8NwP//DcD7/x3I+/8VxPf/EcD7/xG8+/8VuPv/Ebj7/w28//8FuP/+8aDr/yo1p/8yPbP/Cjm7/wqGL/7OYhP+QcVn/gkok/8h/Vv/CelL/yY1q/8mLZ//Mlnb/zJV1/8uVdf/Cd07/vms7/75wQP++cT7/vnI9/79yPf/Dcz7/wnQ9/8R0O//IcUD/yHBA/8dvQP/FbkD/xm0//8RvQP/Bbj//wG0//8RrO//Opo//pIdw/6qXiP+gi3n/pZF//5yKef9/RR7/1Jl5/9Koj//TqI7/06aL/9Wqkf/Xspv/06yT/8qMaf+/aDj/wW9B/75wQP/AcD//wnE//8J0Pv/EdT7/xXU+/8N1P//EdT//w3RA/8JyQP/BcT//wHA//8BwPv/GdED/nFov/31ZPf9xTC//cUcn/2xDI/9iOBb/XjcX/4BLJP/Ifk3/xoZc/8J2RP+/azb/wXNC/8FzQ//Aazf/wXA+/8FwP//BcD//v3A//75yQP/Ac0D/v3Y//8N4P//Edz//xndA/8R3QP/EdkL/w3RB/8J0Qf/Dcj//yHZB/5ZZL/9lPR3/aDsZ/2o9HP9kOxr/dEQi/5JTL/+lXTb/tGQ7/8NqPf/BaDn/wm4+/8JzQP/Ccj7/wnI9/8NzQP/Ccj//wnI//8FxQP/Ccj//wnRB/8B1Qf/Adz//w3lA/8N6P//FekD/xXtB/8Z6Qf/EeEH/w3Y//8t6Qf+dXzH/ZDwc/25CH/9pQB//a0Eg/5pZMf/Aaz//yG9C/8dvQf/FbUD/wmxA/8JtQf/CbD//wWw//8JxP//Dd0H/xHhA/8R3QP/Dd0D/w3dA/8R3QP/FeD//wXhB/796Qf/DfEH/xH1A/8V+QP/FfkH/xn5C/8V8Qf/KfkL/s3A6/2k+Hv9sQB//aT8e/3JDIv+yZjr/y3ND/8NvQP/Cb0D/wnBB/8NvQP/EcED/xG9B/8NvQP/Dbz//w25A/8RyQP/Ge0H/x31A/8Z8QP/GfED/xnxA/8Z8QP/FfEH/w3xC/8V+Qv/GgEH/yIFC/8eBRP/Hf0T/x35B/8mAQv9/TSf/Zz0d/2xAHv9tQSD/tms7/8p3Qf/Ccj7/xHNA/75uP/++bD//vmw//75rPv++aT3/v20+/8RzQP/EdD//xHJA/8V1QP/Hf0H/x39B/8h+Qf/If0H/yH9B/8h/Qv/FgEP/xIFD/8eDQv/KhEL/yYNE/8iBQ//OhUP/q203/2Y8Hf9tQR//ZDsc/6RjNf/Oe0L/xHY+/8d4P//DdT//xYhF/8qQR//Kj0f/yY9H/8qQR//HikX/xHZA/8Z3QP/Fd0D/xnVA/8Z6QP/IgUH/yIFB/8iBQv/IgUL/yIFC/8iDQv/IhkT/yYdD/8qGQv/JhUP/yYRC/9CJRP+JVSr/Zz0d/2g+Hf99Syb/yX1C/8V5P//Ge0D/yHxB/8R4Qf/ks1P/8MZZ/+y+V//rvVj/7cFZ/+OvU//FeUH/yHxB/8l9Qv/JfUL/yntC/8yEQv/Nh0T/zIdD/8yHQ//LhUL/yoZC/8mIRP/JiET/yohE/8qIRP/Ni0T/xoRB/3JFIf9rQB7/Zz0d/6xtOP/ViEb/zYND/8yCQv/IgEH/xn5B/+KxUf/ou1T/y4VD/8yDQv/MhEP/y4ND/8qAQ//HgEH/vXg9/7x4Pf+9dz3/vns+/8CCP//AgT//wIJA/8qIQ//LikT/yopF/8qKR//Li0b/y4tG/9KQSP+3ez3/aD0e/2xAH/9qQB//k1su/5xiMf+WXS//q203/86GRP/HgUH/47JS/+m6Vf/Af0D/v3w//799P//Df0H/yoNC/86GRP+JVSr/a0Ag/3FEIv9wRCL/cUQi/3FFIv9tQSH/t3s9/9GPRv/LjEX/y41G/86RRv/NkEb/1pVJ/651Of9lOx3/bUIf/21BH/9pPh7/aD4d/184G/+bZDH/1I5F/8iEQf/js1L/7cBW/+S3VP/itlT/5bpW/9WgS//IgkH/1Y9F/55mMv9cNRv/Zjwe/2Q6Hf9lOh3/Zjse/101G/+qcTb/15ZI/86QRv/NkUb/z5RI/86TRv/Xmkn/p3I3/2Q6HP9uQh//az8e/2c7HP9pPB3/YDYa/6luNf/WkUb/yYhD/+SzUv/rvVb/3KRO/96kTf/fp0//15pK/8yJQ//Tj0X/uHw8/4xb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">
     <style>
         * {
@@ -674,6 +675,8 @@
             padding: 15px;
             background: #f7fafc;
             border-radius: 12px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         
         .report-section h4 {
@@ -1234,7 +1237,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>検証結果詳細レポート</h2>
-                <button class="modal-close" onclick="closeReportModal()">&times;</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-success" onclick="exportReportToPDF()" style="padding: 6px 12px; font-size: 12px;">📄 PDF保存</button>
+                    <button class="modal-close" onclick="closeReportModal()">&times;</button>
+                </div>
             </div>
             <div class="modal-body" id="detailed-report">
             </div>
@@ -1956,6 +1962,54 @@
 
         function closeReportModal() {
             document.getElementById('reportModal').style.display = 'none';
+        }
+
+        function exportReportToPDF() {
+            const element = document.getElementById('detailed-report');
+            const modalContent = element.closest('.modal-content');
+            const themeName = currentTheme ? currentTheme.themeName : 'レポート';
+            const date = new Date().toISOString().split('T')[0];
+            
+            // スクロール位置を先頭に戻す
+            element.scrollTop = 0;
+            
+            // 元のスタイルを保存
+            const origElementStyle = element.getAttribute('style') || '';
+            const origModalStyle = modalContent ? modalContent.getAttribute('style') || '' : '';
+            
+            // 一時的にスタイルを変更（全ての制限を解除）
+            element.style.overflow = 'visible';
+            element.style.maxHeight = 'none';
+            element.style.height = 'auto';
+            if (modalContent) {
+                modalContent.style.maxHeight = 'none';
+                modalContent.style.overflow = 'visible';
+            }
+            
+            // 少し待ってからPDF生成
+            setTimeout(() => {
+                const opt = {
+                    margin: [8, 8, 8, 8],
+                    filename: `EdgeFinder_${themeName}_${date}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // スタイルを元に戻す
+                    element.setAttribute('style', origElementStyle);
+                    if (modalContent) {
+                        modalContent.setAttribute('style', origModalStyle);
+                    }
+                });
+            }, 100);
         }
 
         // ===========================================
