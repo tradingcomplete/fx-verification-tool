@@ -306,6 +306,7 @@
         
         .theme-info-full span {
             color: var(--text-dark);
+            white-space: pre-line;
         }
         
         /* 入力セクション */
@@ -1593,35 +1594,117 @@
             const exitPrice = parseFloat(document.getElementById('exit-price').value);
 
             const calcResult = document.getElementById('calc-result');
+            const planRREl = document.getElementById('calc-plan-rr');
+            const pipsEl = document.getElementById('calc-pips');
+            const rrEl = document.getElementById('calc-rr');
 
-            if (!direction || isNaN(entryPrice) || isNaN(tpPrice) || isNaN(slPrice) || isNaN(exitPrice)) {
+            // 方向とエントリー価格がなければ非表示
+            if (!direction || isNaN(entryPrice)) {
+                calcResult.style.display = 'none';
+                return;
+            }
+
+            // SLかTPどちらかがあれば表示開始
+            if (isNaN(slPrice) && isNaN(tpPrice)) {
                 calcResult.style.display = 'none';
                 return;
             }
 
             calcResult.style.display = 'grid';
 
-            // リスク（SLまでの距離）
-            const risk = Math.abs(calculatePips(entryPrice, slPrice, direction.value));
-            // リワード（TPまでの距離）
-            const reward = Math.abs(calculatePips(entryPrice, tpPrice, direction.value));
-            // 計画RR
-            const planRR = risk > 0 ? (reward / risk) : 0;
-            const planRREl = document.getElementById('calc-plan-rr');
-            planRREl.textContent = planRR.toFixed(2);
-            planRREl.className = 'calc-item-value ' + (planRR >= 1 ? 'positive' : '');
+            // 価格矛盾チェック（アラートは出さず、⚠️マークのみ）
+            const isLong = direction.value === 'long';
+            let errorMsg = '';
+
+            if (!isNaN(slPrice)) {
+                if (isLong && slPrice >= entryPrice) {
+                    errorMsg = 'ロングの場合、損切価格はエントリー価格より低く設定してください';
+                } else if (!isLong && slPrice <= entryPrice) {
+                    errorMsg = 'ショートの場合、損切価格はエントリー価格より高く設定してください';
+                }
+            }
+
+            if (!isNaN(tpPrice) && !errorMsg) {
+                if (isLong && tpPrice <= entryPrice) {
+                    errorMsg = 'ロングの場合、利確価格はエントリー価格より高く設定してください';
+                } else if (!isLong && tpPrice >= entryPrice) {
+                    errorMsg = 'ショートの場合、利確価格はエントリー価格より低く設定してください';
+                }
+            }
+
+            if (errorMsg) {
+                planRREl.textContent = '⚠️';
+                planRREl.className = 'calc-item-value negative';
+                planRREl.title = errorMsg;
+                pipsEl.textContent = '--';
+                pipsEl.className = 'calc-item-value';
+                rrEl.textContent = '--';
+                rrEl.className = 'calc-item-value';
+                return;
+            }
+
+            // 計画RR計算（SLとTPが両方あれば）
+            if (!isNaN(slPrice) && !isNaN(tpPrice)) {
+                const risk = Math.abs(calculatePips(entryPrice, slPrice, direction.value));
+                const reward = Math.abs(calculatePips(entryPrice, tpPrice, direction.value));
+                const planRR = risk > 0 ? (reward / risk) : 0;
+                planRREl.textContent = planRR.toFixed(2);
+                planRREl.className = 'calc-item-value ' + (planRR >= 1 ? 'positive' : '');
+                planRREl.title = '';
+            } else {
+                planRREl.textContent = '--';
+                planRREl.className = 'calc-item-value';
+            }
+
+            // 決済価格がなければ損益と実現RRは非表示
+            if (isNaN(exitPrice)) {
+                pipsEl.textContent = '--';
+                pipsEl.className = 'calc-item-value';
+                rrEl.textContent = '--';
+                rrEl.className = 'calc-item-value';
+                return;
+            }
 
             // 実際の損益
             const pips = calculatePips(entryPrice, exitPrice, direction.value);
-            const pipsEl = document.getElementById('calc-pips');
             pipsEl.textContent = pips.toFixed(1) + ' pips';
             pipsEl.className = 'calc-item-value ' + (pips >= 0 ? 'positive' : 'negative');
 
             // 実現RR
+            const risk = Math.abs(calculatePips(entryPrice, slPrice, direction.value));
             const rr = risk > 0 ? (pips / risk) : 0;
-            const rrEl = document.getElementById('calc-rr');
             rrEl.textContent = rr.toFixed(2);
             rrEl.className = 'calc-item-value ' + (rr >= 1 ? 'positive' : rr < 0 ? 'negative' : '');
+        }
+        
+        // 価格矛盾チェック（記録追加時に使用）
+        function validatePrices() {
+            const direction = document.querySelector('input[name="direction"]:checked');
+            const entryPrice = parseFloat(document.getElementById('entry-price').value);
+            const tpPrice = parseFloat(document.getElementById('tp-price').value);
+            const slPrice = parseFloat(document.getElementById('sl-price').value);
+            
+            if (!direction) return null;
+            
+            const isLong = direction.value === 'long';
+            
+            if (!isNaN(slPrice)) {
+                if (isLong && slPrice >= entryPrice) {
+                    return 'ロングの場合、損切価格はエントリー価格より低く設定してください';
+                } else if (!isLong && slPrice <= entryPrice) {
+                    return 'ショートの場合、損切価格はエントリー価格より高く設定してください';
+                }
+            }
+
+            if (!isNaN(tpPrice)) {
+                if (isLong && tpPrice <= entryPrice) {
+                    return 'ロングの場合、利確価格はエントリー価格より高く設定してください';
+                } else if (!isLong && tpPrice >= entryPrice) {
+                    return 'ショートの場合、利確価格はエントリー価格より低く設定してください';
+                }
+            }
+            
+            return null;
         }
 
         // ===========================================
@@ -1645,6 +1728,13 @@
             }
             if (isNaN(entryPrice) || isNaN(tpPrice) || isNaN(slPrice) || isNaN(exitPrice)) {
                 alert('全ての価格を入力してください');
+                return;
+            }
+            
+            // 価格矛盾チェック
+            const priceError = validatePrices();
+            if (priceError) {
+                alert(priceError);
                 return;
             }
 
